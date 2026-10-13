@@ -61,6 +61,14 @@ header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;
  .stat b{font-size:12px}.stat span{font-size:9px}
 }
 
+.quizStats{grid-template-columns:repeat(3,minmax(0,1fr));margin:7px 0 3px}.quizStats .stat b{font-size:17px}.quizStats .stat span{font-size:12px}
+
+[hidden]{display:none!important}.guessModes{display:flex;gap:6px;margin:8px 0}.guessModes .btn{flex:1}
+#writtenForm label{display:block;font-size:14px;font-weight:700;margin:8px 0 5px}.writtenRow{display:flex;gap:5px}.writtenRow input{font:inherit;min-width:0;width:100%;flex:1;padding:9px;border:1px solid var(--line);border-radius:9px;color:var(--ink);background:white;font-size:16px}.writtenHelp{font-size:11px;color:var(--muted);line-height:1.35;margin:6px 0}
+.distanceCard{margin-top:9px;padding:10px;background:#f1f7f5;border:1px solid var(--line);border-radius:12px}.distanceTop{display:flex;align-items:center;gap:12px}.compass{flex:0 0 76px;width:76px;height:76px}.distanceText{min-width:0}.distanceText b{display:block;font-size:22px}.distanceText span{font-size:13px}.distanceText small{display:block;font-size:10px;color:var(--muted);margin-top:3px}.proximityTrack{position:relative;height:10px;border-radius:20px;background:linear-gradient(90deg,#e27865,#efc958,#47ad87);margin:10px 3px 4px}.proximityMarker{position:absolute;top:-3px;width:4px;height:16px;border-radius:4px;background:#17342f;transform:translateX(-50%)}.proximityLabels{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+@media(min-width:901px) and (orientation:landscape){.quizCard{overflow-y:auto}}
+@media(max-width:600px){.quizStats .stat b{font-size:14px}.quizStats .stat span{font-size:10px}.guessModes{margin:5px 0}.distanceCard{padding:8px}.distanceText b{font-size:20px}}
+.climateSummary{margin-top:10px;padding:10px;background:#f1f7f5;border:1px solid var(--line);border-radius:10px}.climateSummary h4{margin:0 0 6px;font-size:16px}.climateSummary .facts{margin:0}.infoCard .climateSummary{padding:8px}.infoCard{overflow-y:auto}@media(max-width:600px){.climateSummary{padding:8px;margin-top:7px}.climateSummary h4{font-size:14px}}
 </style>
 </head>
 <body>
@@ -75,8 +83,8 @@ header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;
   <div class="compare"><div class="chartCard"><div class="chartHead"><h2 id="titleA"></h2></div><div class="chartWrap" id="chartA"></div><div class="infoCard" id="infoA"></div></div><div class="chartCard"><div class="chartHead"><h2 id="titleB"></h2></div><div class="chartWrap" id="chartB"></div><div class="infoCard" id="infoB"></div></div></div>
  </section>
  <section id="quiz" class="panel">
-  <div class="toolbar"><div><strong>Identifica la estación</strong><div class="hiddenTitle">Observa el climograma y elige la respuesta correcta</div></div><button id="newQuiz" class="btn primary">Nueva estación</button></div>
-  <div class="quizLayout"><div class="chartCard"><div class="chartHead"><h2>Estación desconocida</h2></div><div class="chartWrap" id="quizChart"></div></div><aside class="quizCard"><h3>¿A qué estación pertenece?</h3><div class="options" id="options"></div><div class="feedback" id="feedback">Selecciona una opción.</div><div class="tip">Pista: fíjate en la amplitud térmica, el total de precipitaciones, su distribución y los meses secos.</div></aside></div>
+  <div class="toolbar"><div><strong>Identifica la estación</strong><div class="hiddenTitle">Observa el climograma e identifica la ciudad o su provincia</div></div><button id="newQuiz" class="btn primary">Nueva estación</button></div>
+  <div class="quizLayout"><div class="chartCard"><div class="chartHead"><h2>Estación desconocida</h2><div class="stats quizStats" id="quizStats"></div></div><div class="chartWrap" id="quizChart"></div></div><aside class="quizCard"><h3>¿A qué estación pertenece?</h3><div class="guessModes" role="group" aria-label="Forma de responder"><button type="button" id="writeMode" class="btn primary" aria-pressed="true">Escribir</button><button type="button" id="choiceMode" class="btn" aria-pressed="false">Opciones</button></div><div class="options" id="options" hidden></div><form id="writtenForm"><label for="cityGuess">Ciudad o provincia</label><div class="writtenRow"><input id="cityGuess" type="text" placeholder="Escribe tu respuesta" autocomplete="off" autocapitalize="words" enterkeyhint="go" required><button class="btn primary" type="submit">Comprobar</button></div><p class="writtenHelp">Puedes escribir una ciudad del juego o cualquier capital provincial. También se acepta la provincia.</p></form><div id="distanceHint" aria-live="polite"></div><div class="feedback" id="feedback">Selecciona una opción.</div><div id="quizSummary" aria-live="polite" hidden></div><div class="tip">Pista: fíjate en la amplitud térmica, el total de precipitaciones, su distribución y los meses secos.</div></aside></div>
  </section>
  <section id="tricks" class="panel">
   <div class="tricksIntro"><b>✓</b><span><strong>Lectura exprés:</strong> empieza por los datos generales y termina justificando el tipo de clima y su localización.</span></div>
@@ -132,14 +140,81 @@ function chart(d,idSuffix="",sharedMaxP=null){const mobile=window.matchMedia("(m
  for(let v=0;v<=maxP;v+=(mobile?(maxP>200?40:20):10)){let y=T+ih-v/maxP*ih;const tempLabel=v%20===0?`${v/2}`:"";s+=`<line x1="${L}" y1="${y}" x2="${w-R}" y2="${y}" stroke="#dce8e4"/><text x="${L-9}" y="${y+(mobile?4:6)}" text-anchor="end" fill="#b0474d" font-size="${mobile?14:20}" font-weight="400">${tempLabel}</text><text x="${w-R+9}" y="${y+(mobile?4:6)}" fill="#2784c7" font-size="${mobile?14:20}" font-weight="400">${v}</text>`}
  const bw=iw/12*.58;d.p.forEach((v,i)=>{const x=L+(i+.5)*iw/12-bw/2,y=T+ih-v/maxP*ih,dy=T+ih-(2*d.t[i])/maxP*ih;if(m.dry[i])s+=`<rect x="${x-3}" y="${dy}" width="${bw+6}" height="${T+ih-dy}" fill="#f0b74b" opacity=".28"/>`;s+=`<rect x="${x}" y="${y}" width="${bw}" height="${T+ih-y}" rx="3" fill="#2784c7" opacity=".82"><title>${M[i]}: ${v} mm</title></rect>`});
  let pts=d.t.map((v,i)=>`${L+(i+.5)*iw/12},${T+ih-v/maxT*ih}`).join(" ");s+=`<polyline points="${pts}" fill="none" stroke="#d44d55" stroke-width="${mobile?2.5:4}" stroke-linejoin="round" stroke-linecap="round"/>`;d.t.forEach((v,i)=>{const x=L+(i+.5)*iw/12,y=T+ih-v/maxT*ih;s+=`<circle cx="${x}" cy="${y}" r="${mobile?2.8:4.5}" fill="#fff" stroke="#d44d55" stroke-width="${mobile?2:3}"><title>${M[i]}: ${v} °C</title></circle><text x="${x}" y="${h-(mobile?8:20)}" text-anchor="middle" fill="#405c56" font-size="${mobile?16:22}" font-weight="400">${M[i]}</text>`});s+=`<text x="${L}" y="19" fill="#d44d55" font-size="${mobile?14:19}" font-weight="400">°C</text><text x="${w-R}" y="19" text-anchor="end" fill="#2784c7" font-size="${mobile?14:19}" font-weight="400">mm</text></svg>`;return s}
-function info(d,compact=false){const m=metrics(d);return`${compact?"":"<h3>Interpretación</h3>"}<div class="stats"><div class="stat"><b>${fmt(m.mean)} °C</b><span>Temperatura media</span></div><div class="stat"><b>${m.annP} mm</b><span>Precipitación anual</span></div><div class="stat"><b>${fmt(m.amp)} °C</b><span>Amplitud térmica</span></div><div class="stat"><b>${m.dryN}</b><span>Meses secos</span></div></div><p><strong>${d.type}</strong></p>${compact?"":`<ul class="facts">${d.facts.map(x=>`<li>${x}</li>`).join("")}</ul>`}`}
+function climateSummary(d){return `<section class="climateSummary"><h4>Características resumidas</h4><ul class="facts">${d.facts.map(x=>`<li>${x}</li>`).join("")}</ul></section>`}
+function showQuizSummary(){const box=document.getElementById("quizSummary");box.innerHTML=climateSummary(DATA[answer]);box.hidden=false;}
+function info(d,compact=false){const m=metrics(d);return`${compact?"":"<h3>Interpretación</h3>"}<div class="stats"><div class="stat"><b>${fmt(m.mean)} °C</b><span>Temperatura media</span></div><div class="stat"><b>${m.annP} mm</b><span>Precipitación anual</span></div><div class="stat"><b>${fmt(m.amp)} °C</b><span>Amplitud térmica</span></div><div class="stat"><b>${m.dryN}</b><span>Meses secos</span></div></div><p><strong>${d.type}</strong></p>${compact?"":climateSummary(d)}`}
 function fillSelect(el){DATA.forEach((d,i)=>el.add(new Option(d.n,i)))}
 const station=document.querySelector("#station"),ca=document.querySelector("#compareA"),cb=document.querySelector("#compareB");[station,ca,cb].forEach(fillSelect);cb.value=7;
 function renderStudy(){const d=DATA[+station.value];studyTitle.textContent=d.n;studySub.textContent=d.z+" · "+d.type;studyChart.innerHTML=chart(d);studyInfo.innerHTML=info(d)}
 function renderCompare(){const a=DATA[+ca.value],b=DATA[+cb.value],sharedMaxP=Math.max(100,Math.ceil(Math.max(...a.p,...b.p)/20)*20);titleA.textContent=a.n;titleB.textContent=b.n;chartA.innerHTML=chart(a,"",sharedMaxP);chartB.innerHTML=chart(b,"",sharedMaxP);infoA.innerHTML=info(a,true);infoB.innerHTML=info(b,true)}
 station.onchange=renderStudy;ca.onchange=cb.onchange=renderCompare;prev.onclick=()=>{station.value=(+station.value-1+DATA.length)%DATA.length;renderStudy()};next.onclick=()=>{station.value=(+station.value+1)%DATA.length;renderStudy()};swap.onclick=()=>{const x=ca.value;ca.value=cb.value;cb.value=x;renderCompare()};
 document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));document.querySelectorAll(".panel").forEach(x=>x.classList.toggle("active",x.id===b.dataset.panel));if(b.dataset.panel==="compare")renderCompare()});
-let answer=0,locked=false;function shuffle(a){return a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1])}function quiz(){locked=false;answer=Math.floor(Math.random()*DATA.length);quizChart.innerHTML=chart(DATA[answer]);feedback.textContent="Selecciona una opción.";const wrong=shuffle(DATA.map((_,i)=>i).filter(i=>i!==answer)).slice(0,3),opts=shuffle([answer,...wrong]);options.innerHTML=opts.map(i=>`<button class="option" data-i="${i}">${DATA[i].n}</button>`).join("");options.querySelectorAll("button").forEach(b=>b.onclick=()=>{if(locked)return;locked=true;const i=+b.dataset.i;b.classList.add(i===answer?"ok":"bad");options.querySelector(`[data-i="${answer}"]`).classList.add("ok");feedback.innerHTML=i===answer?`Correcto: <strong>${DATA[answer].n}</strong>, clima ${DATA[answer].type.toLowerCase()}.`:`Era <strong>${DATA[answer].n}</strong>: ${DATA[answer].facts[0].toLowerCase()}`})}newQuiz.onclick=quiz;
+let answer=0,locked=false;function shuffle(a){return a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1])}function quizData(d){const m=metrics(d);return `<div class="stat"><b>${fmt(m.mean)} °C</b><span>Temperatura media anual</span></div><div class="stat"><b>${fmt(m.amp)} °C</b><span>Amplitud térmica</span></div><div class="stat"><b>${m.annP} mm</b><span>Precipitación anual</span></div>`}
+function quiz(){locked=false;answer=Math.floor(Math.random()*DATA.length);quizChart.innerHTML=chart(DATA[answer]);document.getElementById("quizStats").innerHTML=quizData(DATA[answer]);resetWritten();feedback.textContent=writtenMode?"Escribe una ciudad o provincia.":"Selecciona una opción.";const wrong=shuffle(DATA.map((_,i)=>i).filter(i=>i!==answer)).slice(0,3),opts=shuffle([answer,...wrong]);options.innerHTML=opts.map(i=>`<button class="option" data-i="${i}">${DATA[i].n}</button>`).join("");options.querySelectorAll("button").forEach(b=>b.onclick=()=>{if(locked)return;locked=true;const i=+b.dataset.i;if(i===answer)showQuizSummary();b.classList.add(i===answer?"ok":"bad");options.querySelector(`[data-i="${answer}"]`).classList.add("ok");feedback.innerHTML=i===answer?`Correcto: <strong>${DATA[answer].n}</strong>, clima ${DATA[answer].type.toLowerCase()}.`:`Era <strong>${DATA[answer].n}</strong>: ${DATA[answer].facts[0].toLowerCase()}`})}newQuiz.onclick=quiz;
+
+const normName=s=>s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
+const PLACES=[
+ ["A Coruña","A Coruña",43.362,-8.411,"La Coruña|Coruña"],["Ávila","Ávila",40.656,-4.681,""],
+ ["Segovia","Segovia",40.943,-4.108,""],["Soria","Soria",41.764,-2.465,""],
+ ["Santiago de Compostela","A Coruña",42.880,-8.545,"Santiago"],["Bilbao","Vizcaya",43.263,-2.935,"Bilbo|Bizkaia"],
+ ["Santander","Cantabria",43.462,-3.810,""],["Pamplona","Navarra",42.813,-1.645,"Iruña|Iruñea|Nafarroa"],
+ ["Valladolid","Valladolid",41.652,-4.724,""],["Salamanca","Salamanca",40.970,-5.664,""],
+ ["Madrid","Madrid",40.417,-3.704,""],["Huesca","Huesca",42.140,-0.408,""],
+ ["Teruel","Teruel",40.345,-1.107,""],["Zaragoza","Zaragoza",41.649,-0.889,""],
+ ["Barcelona","Barcelona",41.387,2.170,""],["Burgos","Burgos",42.344,-3.697,""],
+ ["Castellón de la Plana","Castellón",39.986,-0.049,"Castelló|Castelló de la Plana"],["Valencia","Valencia",39.470,-0.376,"València"],
+ ["Alicante","Alicante",38.345,-0.491,"Alacant"],["Murcia","Murcia",37.984,-1.130,""],
+ ["Badajoz","Badajoz",38.879,-6.970,""],["Sevilla","Sevilla",37.389,-5.984,""],
+ ["Córdoba","Córdoba",37.889,-4.779,""],["Granada","Granada",37.177,-3.599,""],
+ ["Málaga","Málaga",36.721,-4.421,""],["Almería","Almería",36.834,-2.464,""],
+ ["Puerto de Navacerrada","Madrid",40.7933,-4.0108,"Navacerrada"],
+ ["Tenerife Norte Aeropuerto","Santa Cruz de Tenerife",28.4775,-16.3294,"Tenerife Norte|La Laguna|San Cristóbal de La Laguna|Tenerife"],
+ ["Gran Canaria Aeropuerto","Las Palmas",27.932,-15.387,"Gran Canaria|Aeropuerto de Gran Canaria"],
+ ["Albacete","Albacete",38.995,-1.856,""],["Almería","Almería",36.834,-2.464,""],
+ ["Oviedo","Asturias",43.362,-5.850,"Uviéu"],["Palma","Islas Baleares",39.570,2.650,"Palma de Mallorca|Baleares|Illes Balears"],
+ ["Cáceres","Cáceres",39.476,-6.372,""],["Cádiz","Cádiz",36.527,-6.288,""],
+ ["Ciudad Real","Ciudad Real",38.985,-3.927,""],["Cuenca","Cuenca",40.070,-2.137,""],
+ ["Girona","Girona",41.979,2.821,"Gerona"],["Guadalajara","Guadalajara",40.633,-3.167,""],
+ ["Huelva","Huelva",37.261,-6.945,""],["Jaén","Jaén",37.780,-3.790,""],
+ ["León","León",42.599,-5.567,""],["Lleida","Lleida",41.617,0.620,"Lérida"],
+ ["Logroño","La Rioja",42.466,-2.445,"Rioja"],["Lugo","Lugo",43.009,-7.556,""],
+ ["Ourense","Ourense",42.336,-7.864,"Orense"],["Palencia","Palencia",42.009,-4.529,""],
+ ["Las Palmas de Gran Canaria","Las Palmas",28.124,-15.437,"Las Palmas"],
+ ["Pontevedra","Pontevedra",42.431,-8.644,""],["San Sebastián","Guipúzcoa",43.318,-1.982,"Donostia|Gipuzkoa|Donostia San Sebastián"],
+ ["Santa Cruz de Tenerife","Santa Cruz de Tenerife",28.463,-16.252,""],
+ ["Tarragona","Tarragona",41.119,1.245,""],["Toledo","Toledo",39.863,-4.027,""],
+ ["Vitoria","Álava",42.847,-2.672,"Vitoria Gasteiz|Gasteiz|Araba"],["Zamora","Zamora",41.503,-5.744,""],
+ ["Ceuta","Ceuta",35.889,-5.321,""],["Melilla","Melilla",35.292,-2.938,""]
+].map(([name,province,lat,lon,aliases])=>({name,province,lat,lon,aliases:aliases.split("|").filter(Boolean)}));
+const placeByName=new Map();PLACES.forEach(p=>[p.name,...p.aliases].forEach(n=>placeByName.set(normName(n),p)));
+const provinceByName=new Map();PLACES.forEach(p=>{if(!provinceByName.has(normName(p.province)))provinceByName.set(normName(p.province),p);});
+[ ["La Coruña","A Coruña"],["Coruña","A Coruña"],["Bizkaia","Vizcaya"],["Gipuzkoa","Guipúzcoa"],["Araba","Álava"],["Nafarroa","Navarra"],["Gerona","Girona"],["Lérida","Lleida"],["Orense","Ourense"],["Baleares","Islas Baleares"],["Illes Balears","Islas Baleares"] ].forEach(([alias,province])=>provinceByName.set(normName(alias),provinceByName.get(normName(province))));
+function geoHint(from,to){const rad=Math.PI/180,a=from.lat*rad,b=to.lat*rad,deltaLat=b-a,deltaLon=(to.lon-from.lon)*rad;
+ const h=Math.sin(deltaLat/2)**2+Math.cos(a)*Math.cos(b)*Math.sin(deltaLon/2)**2;
+ const km=6371*2*Math.atan2(Math.sqrt(Math.min(1,h)),Math.sqrt(Math.max(0,1-h)));
+ const bearing=(Math.atan2(Math.sin(deltaLon)*Math.cos(b),Math.cos(a)*Math.sin(b)-Math.sin(a)*Math.cos(b)*Math.cos(deltaLon))/rad+360)%360;
+ const directions=["norte","noreste","este","sureste","sur","suroeste","oeste","noroeste"];
+ return {km,bearing,direction:directions[Math.round(bearing/45)%8],closeness:Math.max(0,Math.min(100,100*(1-km/2200)))};
+}
+let writtenMode=true;
+const writtenForm=document.getElementById("writtenForm"),cityGuess=document.getElementById("cityGuess"),distanceHint=document.getElementById("distanceHint");
+function resetWritten(){document.getElementById("quizSummary").hidden=true;document.getElementById("quizSummary").innerHTML="";cityGuess.value="";cityGuess.disabled=false;writtenForm.querySelector("button").disabled=false;distanceHint.innerHTML="";}
+function setGuessMode(write){writtenMode=write;writtenForm.hidden=!write;options.hidden=write;document.getElementById("choiceMode").classList.toggle("primary",!write);document.getElementById("writeMode").classList.toggle("primary",write);document.getElementById("choiceMode").setAttribute("aria-pressed",String(!write));document.getElementById("writeMode").setAttribute("aria-pressed",String(write));quiz();}
+document.getElementById("choiceMode").onclick=()=>setGuessMode(false);document.getElementById("writeMode").onclick=()=>setGuessMode(true);
+function spellingDistance(a,b){const d=Array.from({length:a.length+1},()=>Array(b.length+1).fill(0));for(let i=0;i<=a.length;i++)d[i][0]=i;for(let j=0;j<=b.length;j++)d[0][j]=j;for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++){d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));if(i>1&&j>1&&a[i-1]===b[j-2]&&a[i-2]===b[j-1])d[i][j]=Math.min(d[i][j],d[i-2][j-2]+1);}return d[a.length][b.length];}
+function resolveSpelling(key){if(placeByName.has(key)||provinceByName.has(key))return key;if(key.length<4)return key;let best=Infinity,matches=[];const names=new Set([...placeByName.keys(),...provinceByName.keys()]);for(const name of names){const limit=Math.max(key.length,name.length)>=8?2:1,score=spellingDistance(key,name);if(score>limit||score/Math.max(key.length,name.length)>.22)continue;if(score<best){best=score;matches=[name];}else if(score===best)matches.push(name);}const provinces=new Set(matches.map(n=>normName((placeByName.get(n)||provinceByName.get(n)).province)));return provinces.size===1?matches[0]:key;}
+function checkWritten(value,target){const key=resolveSpelling(normName(value).replace(/^provinciade/,""));const place=placeByName.get(key),province=provinceByName.get(key);
+ if(key===normName(target.name)||target.aliases.some(a=>normName(a)===key)||normName(target.province)===key||(province&&normName(province.province)===normName(target.province))||(place&&normName(place.province)===normName(target.province)))return {ok:true};
+ const from=place||province;if(!from)return {unknown:true};return {from,...geoHint(from,target)};
+}
+writtenForm.onsubmit=e=>{e.preventDefault();if(locked)return;const target=placeByName.get(normName(DATA[answer].n)),result=checkWritten(cityGuess.value,target);
+ if(result.ok){locked=true;showQuizSummary();feedback.textContent="¡Correcto! "+DATA[answer].n+" · "+target.province+" · "+DATA[answer].type;distanceHint.innerHTML="";cityGuess.disabled=true;writtenForm.querySelector("button").disabled=true;return;}
+ if(result.unknown){feedback.textContent="No reconozco ese nombre. Prueba con una ciudad del juego, una capital provincial o una provincia.";distanceHint.innerHTML="";return;}
+ feedback.textContent="Todavía no. La flecha indica hacia dónde está la estación correcta desde tu respuesta.";
+ distanceHint.innerHTML=`<div class="distanceCard"><div class="distanceTop"><svg class="compass" viewBox="0 0 80 80" role="img" aria-label="Dirección: ${result.direction}"><circle cx="40" cy="40" r="37" fill="white" stroke="#c9ddd5"/><text x="40" y="13" text-anchor="middle" font-size="10" fill="#647b76">N</text><text x="69" y="43" text-anchor="middle" font-size="10" fill="#647b76">E</text><text x="40" y="74" text-anchor="middle" font-size="10" fill="#647b76">S</text><text x="11" y="43" text-anchor="middle" font-size="10" fill="#647b76">O</text><g transform="rotate(${result.bearing} 40 40)"><path d="M40 19 L51 36 H44 V59 H36 V36 H29 Z" fill="#187b63"/></g></svg><div class="distanceText"><b>≈ ${Math.max(1,Math.round(result.km))} km</b><span>Hacia el ${result.direction}</span><small>Distancia en línea recta desde ${result.from.name}</small></div></div><div class="proximityTrack" role="img" aria-label="Proximidad: ${Math.round(result.closeness)} de 100"><span class="proximityMarker" style="left:${result.closeness}%"></span></div><div class="proximityLabels"><span>Lejos</span><span>Cerca</span></div></div>`;
+ cityGuess.select();
+};
+
 renderStudy();renderCompare();quiz();
 window.matchMedia("(max-width:600px)").addEventListener("change",()=>{
  renderStudy();renderCompare();quizChart.innerHTML=chart(DATA[answer]);
