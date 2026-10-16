@@ -76,6 +76,7 @@ header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;
  #tricks .trickCard{overflow:visible}
  #tricks .trickList{font-size:clamp(14px,1vw,16px)}
 }
+.hintHeader{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.hintHeader h4{font-size:15px;margin:0;flex:1}.hintHeader span{font-size:11px;color:var(--muted)}.hintHeader .btn{font-size:12px;padding:7px 9px;min-height:36px}.climateHints p{line-height:1.45;margin:9px 0;min-height:5.8em;overflow-wrap:anywhere}.climateHints small{display:block;font-size:11px;color:#796439;line-height:1.3}
 </style>
 </head>
 <body>
@@ -91,7 +92,7 @@ header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;
  </section>
  <section id="quiz" class="panel">
   <div class="toolbar"><div><strong>Identifica la estación</strong><div class="hiddenTitle">Observa el climograma e identifica la ciudad o su provincia</div></div><button id="newQuiz" class="btn primary">Nueva estación</button></div>
-  <div class="quizLayout"><div class="chartCard"><div class="chartHead"><h2>Estación desconocida</h2><div class="stats quizStats" id="quizStats"></div></div><div class="chartWrap" id="quizChart"></div></div><aside class="quizCard"><h3>¿A qué estación pertenece?</h3><div class="guessModes" role="group" aria-label="Forma de responder"><button type="button" id="writeMode" class="btn primary" aria-pressed="true">Escribir</button><button type="button" id="choiceMode" class="btn" aria-pressed="false">Opciones</button></div><div class="options" id="options" hidden></div><form id="writtenForm"><label for="cityGuess">Ciudad o provincia</label><div class="writtenRow"><input id="cityGuess" type="text" placeholder="Escribe tu respuesta" autocomplete="off" autocapitalize="words" enterkeyhint="go" required><button class="btn primary" type="submit">Comprobar</button></div><p class="writtenHelp">Puedes escribir una ciudad del juego o cualquier capital provincial. También se acepta la provincia.</p></form><div id="distanceHint" aria-live="polite"></div><div class="feedback" id="feedback">Selecciona una opción.</div><div id="quizSummary" aria-live="polite" hidden></div><div class="tip">Pista: fíjate en la amplitud térmica, el total de precipitaciones, su distribución y los meses secos.</div></aside></div>
+  <div class="quizLayout"><div class="chartCard"><div class="chartHead"><h2>Estación desconocida</h2><div class="stats quizStats" id="quizStats"></div></div><div class="chartWrap" id="quizChart"></div></div><aside class="quizCard"><h3>¿A qué estación pertenece?</h3><div class="guessModes" role="group" aria-label="Forma de responder"><button type="button" id="writeMode" class="btn primary" aria-pressed="true">Escribir</button><button type="button" id="choiceMode" class="btn" aria-pressed="false">Opciones</button></div><div class="options" id="options" hidden></div><form id="writtenForm"><label for="cityGuess">Ciudad o provincia</label><div class="writtenRow"><input id="cityGuess" type="text" placeholder="Escribe tu respuesta" autocomplete="off" autocapitalize="words" enterkeyhint="go" required><button class="btn primary" type="submit">Comprobar</button></div><p class="writtenHelp">Puedes escribir una ciudad del juego o cualquier capital provincial. También se acepta la provincia.</p></form><div id="distanceHint" aria-live="polite"></div><div class="feedback" id="feedback">Selecciona una opción.</div><div id="quizSummary" aria-live="polite" hidden></div><section class="tip climateHints" aria-labelledby="climateHintsTitle"><div class="hintHeader"><h4 id="climateHintsTitle">Pistas para localizarlo</h4><span id="climateHintCount"></span><button type="button" class="btn" id="climateHintButton" aria-controls="climateHintText">Ver pista</button></div><p id="climateHintText" aria-live="polite" aria-atomic="true"></p><small>Son orientaciones: combina varias pistas antes de responder.</small></section></aside></div>
  </section>
  <section id="tricks" class="panel">
   <div class="tricksIntro"><b>✓</b><span><strong>Lectura exprés:</strong> un climograma muestra las temperaturas medias mensuales (línea) y las precipitaciones mensuales (barras). Combina sus datos para identificar el clima y su localización.</span></div>
@@ -157,7 +158,7 @@ function renderCompare(){const a=DATA[+ca.value],b=DATA[+cb.value],sharedMaxP=Ma
 station.onchange=renderStudy;ca.onchange=cb.onchange=renderCompare;prev.onclick=()=>{station.value=(+station.value-1+DATA.length)%DATA.length;renderStudy()};next.onclick=()=>{station.value=(+station.value+1)%DATA.length;renderStudy()};swap.onclick=()=>{const x=ca.value;ca.value=cb.value;cb.value=x;renderCompare()};
 document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));document.querySelectorAll(".panel").forEach(x=>x.classList.toggle("active",x.id===b.dataset.panel));if(b.dataset.panel==="compare")renderCompare()});
 let answer=0,locked=false;function shuffle(a){return a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1])}function quizData(d){const m=metrics(d);return `<div class="stat"><b>${fmt(m.mean)} °C</b><span>Temperatura media anual</span></div><div class="stat"><b>${fmt(m.amp)} °C</b><span>Amplitud térmica</span></div><div class="stat"><b>${m.annP} mm</b><span>Precipitación anual</span></div>`}
-function quiz(){locked=false;answer=Math.floor(Math.random()*DATA.length);quizChart.innerHTML=chart(DATA[answer]);document.getElementById("quizStats").innerHTML=quizData(DATA[answer]);resetWritten();feedback.textContent=writtenMode?"Escribe una ciudad o provincia.":"Selecciona una opción.";const wrong=shuffle(DATA.map((_,i)=>i).filter(i=>i!==answer)).slice(0,3),opts=shuffle([answer,...wrong]);options.innerHTML=opts.map(i=>`<button class="option" data-i="${i}">${DATA[i].n}</button>`).join("");options.querySelectorAll("button").forEach(b=>b.onclick=()=>{if(locked)return;locked=true;const i=+b.dataset.i;if(i===answer)showQuizSummary();b.classList.add(i===answer?"ok":"bad");options.querySelector(`[data-i="${answer}"]`).classList.add("ok");feedback.innerHTML=i===answer?`Correcto: <strong>${DATA[answer].n}</strong>, clima ${DATA[answer].type.toLowerCase()}.`:`Era <strong>${DATA[answer].n}</strong>: ${DATA[answer].facts[0].toLowerCase()}`})}newQuiz.onclick=quiz;
+function quiz(){locked=false;answer=Math.floor(Math.random()*DATA.length);quizChart.innerHTML=chart(DATA[answer]);document.getElementById("quizStats").innerHTML=quizData(DATA[answer]);resetWritten();resetClimateHints(DATA[answer]);feedback.textContent=writtenMode?"Escribe una ciudad o provincia.":"Selecciona una opción.";const wrong=shuffle(DATA.map((_,i)=>i).filter(i=>i!==answer)).slice(0,3),opts=shuffle([answer,...wrong]);options.innerHTML=opts.map(i=>`<button class="option" data-i="${i}">${DATA[i].n}</button>`).join("");options.querySelectorAll("button").forEach(b=>b.onclick=()=>{if(locked)return;locked=true;const i=+b.dataset.i;if(i===answer)showQuizSummary();b.classList.add(i===answer?"ok":"bad");options.querySelector(`[data-i="${answer}"]`).classList.add("ok");feedback.innerHTML=i===answer?`Correcto: <strong>${DATA[answer].n}</strong>, clima ${DATA[answer].type.toLowerCase()}.`:`Era <strong>${DATA[answer].n}</strong>: ${DATA[answer].facts[0].toLowerCase()}`})}newQuiz.onclick=quiz;
 
 const normName=s=>s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
 const PLACES=[
@@ -221,6 +222,48 @@ writtenForm.onsubmit=e=>{e.preventDefault();if(locked)return;const target=placeB
  distanceHint.innerHTML=`<div class="distanceCard"><div class="distanceTop"><svg class="compass" viewBox="0 0 80 80" role="img" aria-label="Dirección: ${result.direction}"><circle cx="40" cy="40" r="37" fill="white" stroke="#c9ddd5"/><text x="40" y="13" text-anchor="middle" font-size="10" fill="#647b76">N</text><text x="69" y="43" text-anchor="middle" font-size="10" fill="#647b76">E</text><text x="40" y="74" text-anchor="middle" font-size="10" fill="#647b76">S</text><text x="11" y="43" text-anchor="middle" font-size="10" fill="#647b76">O</text><g transform="rotate(${result.bearing} 40 40)"><path d="M40 19 L51 36 H44 V59 H36 V36 H29 Z" fill="#187b63"/></g></svg><div class="distanceText"><b>≈ ${Math.max(1,Math.round(result.km))} km</b><span>Hacia el ${result.direction}</span><small>Distancia en línea recta desde ${result.from.name}</small></div></div><div class="proximityTrack" role="img" aria-label="Proximidad: ${Math.round(result.closeness)} de 100"><span class="proximityMarker" style="left:${result.closeness}%"></span></div><div class="proximityLabels"><span>Lejos</span><span>Cerca</span></div></div>`;
  cityGuess.select();
 };
+
+
+let climateHintQueue=[],climateHintIndex=0,lastClimateHintKind="";
+function buildClimateHints(d){
+ const m=metrics(d),cold=Math.min(...d.t),warm=Math.max(...d.t);
+ const meanPlace=m.mean<10?"zonas de montaña o áreas elevadas del interior":m.mean<=15?"el norte peninsular o buena parte de la Meseta":m.mean<=17?"sectores mediterráneos o del interior meridional":"zonas bajas de Andalucía, el sureste o las costas de Canarias";
+ const ampPlace=m.amp<8?"una fuerte influencia marítima, característica de las costas canarias":m.amp<=12?"la influencia del mar, frecuente en el litoral gallego y cantábrico":m.amp<=16?"una influencia marítima moderada, frecuente en el litoral mediterráneo y suratlántico":"continentalidad, frecuente en el interior peninsular; contrástala con las demás pistas";
+ const rainPlace=m.annP<300?"el sureste semiárido, sectores del valle del Ebro o zonas secas de Canarias":m.annP<500?"gran parte del interior peninsular o sectores del litoral mediterráneo":m.annP<=800?"áreas de transición al clima oceánico o sectores más lluviosos del dominio mediterráneo":"Galicia, la cornisa cantábrica o áreas montañosas";
+ const winterPlace=cold<6?"el interior peninsular o zonas de montaña":cold<=10?"el litoral norte o sectores del interior meridional":"las costas mediterráneas meridionales, el litoral gaditano o zonas bajas de Canarias";
+ const summerPlace=warm<22?"el norte peninsular o zonas de montaña":"gran parte del interior, el litoral mediterráneo, Andalucía o las costas canarias";
+ const summerDry=[5,6,7].some(i=>m.dry[i]);
+ const dryPlace=m.dryN===0?"La ausencia de meses secos apunta al norte oceánico o a montaña húmeda.":m.dryN>=7?"Una aridez tan prolongada orienta hacia el sureste semiárido o las zonas más secas de Canarias.":summerDry?"La sequía en verano apunta al dominio mediterráneo; también aparece en Canarias.":"La aridez fuera del verano obliga a considerar la distribución completa: puede aparecer en áreas interiores o sectores canarios.";
+ const seasons=[{name:"invierno",v:d.p[11]+d.p[0]+d.p[1],place:"el oeste y suroeste peninsular; también puede darse en el norte oceánico y Canarias"},{name:"primavera",v:sum(d.p.slice(2,5)),place:"sectores del interior peninsular"},{name:"verano",v:sum(d.p.slice(5,8)),place:"algunas áreas de montaña con tormentas estivales"},{name:"otoño",v:sum(d.p.slice(8,11)),place:"el litoral mediterráneo; también es frecuente en áreas atlánticas"}];
+ const peak=seasons.reduce((a,b)=>b.v>a.v?b:a);
+ return [
+ {kind:"mean",title:"Temperatura media anual",text:`La media es de ${fmt(m.mean)} °C. Es compatible con ${meanPlace}. La latitud y la altitud ayudan a explicar este valor.`},
+ {kind:"amplitude",title:"Amplitud térmica",text:`Hay ${fmt(m.amp)} °C de diferencia entre el mes más cálido y el más frío. Sugiere ${ampPlace}.`},
+ {kind:"rain",title:"Precipitación total",text:`Suma ${m.annP} mm al año. Esta cantidad orienta hacia ${rainPlace}. Comprueba cuándo llueve para distinguir estas zonas.`},
+ {kind:"winter",title:"Temperaturas de invierno",text:`El mes más frío registra ${fmt(cold)} °C: invierno ${cold<6?"frío":cold<=10?"moderado":"suave"}. Puede corresponder a ${winterPlace}.`},
+ {kind:"summer",title:"Temperaturas de verano",text:`El mes más cálido alcanza ${fmt(warm)} °C: verano ${warm<22?"fresco":"caluroso"}. Es compatible con ${summerPlace}.`},
+ {kind:"dry",title:"Meses secos",text:`Hay ${m.dryN} ${m.dryN===1?"mes seco":"meses secos"} según P ≤ 2T. ${dryPlace}`},
+ {kind:"season",title:"Distribución de las lluvias",text:`La estación más lluviosa es el ${peak.name}, con ${peak.v} mm. Este máximo es compatible con ${peak.place}. Relaciónalo con la aridez y las temperaturas.`}
+ ];
+}
+function resetClimateHints(d){
+ climateHintQueue=shuffle(buildClimateHints(d));
+ if(climateHintQueue[0].kind===lastClimateHintKind){[climateHintQueue[0],climateHintQueue[1]]=[climateHintQueue[1],climateHintQueue[0]];}
+ climateHintIndex=0;
+ document.getElementById("climateHintText").textContent="Pide una pista para relacionar un dato del climograma con su posible localización.";
+ document.getElementById("climateHintCount").textContent="";
+ const button=document.getElementById("climateHintButton");button.disabled=false;button.textContent="Ver pista";
+}
+function showClimateHint(){
+ if(climateHintIndex>=climateHintQueue.length)return;
+ const hint=climateHintQueue[climateHintIndex++];lastClimateHintKind=hint.kind;
+ const box=document.getElementById("climateHintText");box.replaceChildren();
+ const title=document.createElement("strong");title.textContent=hint.title+": ";
+ box.append(title,document.createTextNode(hint.text));
+ document.getElementById("climateHintCount").textContent=`${climateHintIndex} / ${climateHintQueue.length}`;
+ const button=document.getElementById("climateHintButton");button.textContent=climateHintIndex===climateHintQueue.length?"Todas las pistas vistas":"Otra pista";button.disabled=climateHintIndex===climateHintQueue.length;
+}
+document.getElementById("climateHintButton").addEventListener("click",showClimateHint);
 
 renderStudy();renderCompare();quiz();
 window.matchMedia("(max-width:600px)").addEventListener("change",()=>{
