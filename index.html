@@ -237,9 +237,9 @@ function buildClimateHints(d){
  const seasons=[{name:"invierno",v:d.p[11]+d.p[0]+d.p[1],place:"el oeste y suroeste peninsular; también puede darse en el norte oceánico y Canarias"},{name:"primavera",v:sum(d.p.slice(2,5)),place:"sectores del interior peninsular"},{name:"verano",v:sum(d.p.slice(5,8)),place:"algunas áreas de montaña con tormentas estivales"},{name:"otoño",v:sum(d.p.slice(8,11)),place:"el litoral mediterráneo; también es frecuente en áreas atlánticas"}];
  const peak=seasons.reduce((a,b)=>b.v>a.v?b:a);
  return [
- {kind:"mean",title:"Temperatura media anual",text:`La media es de ${fmt(m.mean)} °C. Es compatible con ${meanPlace}. La latitud y la altitud ayudan a explicar este valor.`},
- {kind:"amplitude",title:"Amplitud térmica",text:`Hay ${fmt(m.amp)} °C de diferencia entre el mes más cálido y el más frío. Sugiere ${ampPlace}.`},
- {kind:"rain",title:"Precipitación total",text:`Suma ${m.annP} mm al año. Esta cantidad orienta hacia ${rainPlace}. Comprueba cuándo llueve para distinguir estas zonas.`},
+ {kind:"mean",title:"Temperatura media anual",text:`La media es de ${fmt(m.mean)} °C: temperatura ${m.mean<10?"baja":m.mean<=15?"moderada":m.mean<=17?"cálida":"elevada"}. Es compatible con ${meanPlace}. La latitud y la altitud ayudan a explicar este valor.`},
+ {kind:"amplitude",title:"Amplitud térmica",text:`La amplitud térmica es de ${fmt(m.amp)} °C: ${m.amp<8?"muy baja":m.amp<=12?"baja":m.amp<=16?"media":"alta"}. Es la diferencia entre el mes más cálido y el más frío y sugiere ${ampPlace}.`},
+ {kind:"rain",title:"Precipitación total",text:`Suma ${m.annP} mm al año: precipitaciones ${m.annP<300?"muy escasas":m.annP<500?"escasas":m.annP<=800?"moderadas":m.annP<=1000?"abundantes":"muy abundantes"}. Esta cantidad orienta hacia ${rainPlace}. Comprueba cuándo llueve para distinguir estas zonas.`},
  {kind:"winter",title:"Temperaturas de invierno",text:`El mes más frío registra ${fmt(cold)} °C: invierno ${cold<6?"frío":cold<=10?"moderado":"suave"}. Puede corresponder a ${winterPlace}.`},
  {kind:"summer",title:"Temperaturas de verano",text:`El mes más cálido alcanza ${fmt(warm)} °C: verano ${warm<22?"fresco":"caluroso"}. Es compatible con ${summerPlace}.`},
  {kind:"dry",title:"Meses secos",text:`Hay ${m.dryN} ${m.dryN===1?"mes seco":"meses secos"} según P ≤ 2T. ${dryPlace}`},
