@@ -78,7 +78,56 @@ header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;
 }
 .hintHeader{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.hintHeader h4{font-size:15px;margin:0;flex:1}.hintHeader span{font-size:11px;color:var(--muted)}.hintHeader .btn{font-size:12px;padding:7px 9px;min-height:36px}.climateHints p{line-height:1.45;margin:9px 0;min-height:5.8em;overflow-wrap:anywhere}.climateHints small{display:block;font-size:11px;color:#796439;line-height:1.3}
 </style>
-</head>
+<style id="tricks-overview-layout">/* Full overview, with an enlarged reading view for the board and phones. */
+.tricksTools{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-shrink:0}
+.tricksTools h2{font-size:20px;margin:0}.tricksTools .btn{min-height:40px}
+#tricks .trickCard{overflow:visible;min-width:0}
+#tricks .tricksGrid{overflow:auto;grid-template-rows:repeat(2,minmax(min-content,1fr));padding:1px 3px 3px 1px}
+.trickHead h3{flex:1;min-width:0}
+.enlargeTrick{border:1px solid var(--line);border-radius:7px;background:#f1f7f5;color:var(--green);font:inherit;font-weight:700;cursor:pointer;flex-shrink:0;min-width:32px;min-height:32px;padding:3px;font-size:18px}
+.enlargeTrick:focus-visible,.tricksTools button:focus-visible{outline:3px solid #c1973f;outline-offset:2px}
+#tricks .trickList{font-size:var(--overview-font,14px);line-height:1.3}
+#tricks .trickCard h3{font-size:var(--overview-title,18px)}
+#tricks .trickList li{margin:3px 0}
+@media(min-width:901px) and (orientation:landscape) and (max-height:850px){
+ #tricks .tricksIntro{display:none}
+ #tricks .visualScale,#tricks .tagRow,#tricks .steps{display:none}
+ #tricks .trickCard{padding:6px 11px}
+ #tricks .trickIcon{width:25px;height:25px;flex-basis:25px;font-size:16px}
+ #tricks .trickHead{gap:6px;margin-bottom:4px}
+ #tricks .trickList li{margin:2px 0}
+ #tricks .tricksIntro{padding:6px 10px;font-size:13px}
+ #tricks .memory{padding:6px 10px;font-size:12px}
+}
+.tricksReader{position:fixed;inset:0;margin:auto;width:calc(100vw - 24px);max-width:1800px;height:calc(100dvh - 24px);max-height:none;border:1px solid var(--line);border-radius:18px;padding:0;background:#f4f8f6;color:var(--ink);box-shadow:var(--shadow)}
+.tricksReader::backdrop{background:#102c32b8}
+.tricksReader[open]{display:flex;flex-direction:column}
+.readerHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;background:#fff;border-bottom:1px solid var(--line);flex-shrink:0}
+.readerHead h2{font-size:21px;margin:0}.readerControls{display:flex;gap:6px;flex-wrap:wrap}.readerControls button{min-height:42px}
+.readerBody{overflow:auto;min-height:0;padding:16px;overscroll-behavior:contain;flex:1}
+.readerBody .tricksGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto;gap:14px}
+.readerBody .trickCard{overflow:visible;padding:18px;box-shadow:none}
+.readerBody .trickList,.readerBody .trickCard p{font-size:var(--reader-font,20px);line-height:1.5}
+.readerBody .trickList li{margin:8px 0}
+.readerBody .trickCard h3{font-size:calc(var(--reader-font,20px) * 1.2)}
+.readerBody .visualScale{height:auto;min-height:48px;font-size:calc(var(--reader-font,20px) * .75)}
+.readerBody .tag,.readerBody .step,.readerBody .formulaNote{font-size:calc(var(--reader-font,20px) * .8)}
+.readerBody .enlargeTrick{display:none}
+.readerBody.singleTrick{display:flex;align-items:flex-start;justify-content:center}
+.readerBody.singleTrick .trickCard{width:100%;max-width:1100px;margin:auto}
+@media(max-width:900px),(orientation:portrait){
+ #tricks .tricksGrid{overflow:visible;grid-template-rows:auto}
+ #tricks .trickList{font-size:14px}
+ .readerBody .tricksGrid{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+ .tricksTools h2{font-size:17px}.tricksTools .btn{font-size:13px}
+ .tricksReader{width:100vw;height:100dvh;border-radius:0;border:0}
+ .readerHead{padding:8px;flex-wrap:wrap}.readerHead h2{font-size:18px;flex:1}
+ .readerControls{gap:4px}.readerControls .btn{font-size:14px;padding:7px 10px;min-height:42px}
+ .readerBody{padding:10px}.readerBody .trickCard{padding:14px}
+}
+</style></head>
 <body>
 <main class="app">
  <header><div><h1>Climogramas de España</h1><p class="sub">Temperaturas, precipitaciones y aridez según el criterio de Gaussen</p></div><nav class="tabs"><button class="tab active" data-panel="study">Estudiar</button><button class="tab" data-panel="compare">Comparar</button><button class="tab" data-panel="quiz">Adivinar</button><button class="tab" data-panel="tricks">Trucos</button></nav></header>
@@ -270,5 +319,43 @@ window.matchMedia("(max-width:600px)").addEventListener("change",()=>{
  renderStudy();renderCompare();quizChart.innerHTML=chart(DATA[answer]);
 });
 </script>
-</body>
+<script id="tricks-overview-controls">(()=>{
+ const section=document.getElementById('tricks'),grid=section.querySelector('.tricksGrid');
+ const toolbar=document.createElement('div');toolbar.className='tricksTools';
+ toolbar.innerHTML='<h2>Trucos de un vistazo</h2><button type="button" class="btn primary" id="enlargeAllTricks">Ampliar todo ↗</button>';
+ section.prepend(toolbar);
+ const dialog=document.createElement('dialog');dialog.className='tricksReader';dialog.setAttribute('aria-labelledby','tricksReaderTitle');
+ dialog.innerHTML='<header class="readerHead"><h2 id="tricksReaderTitle">Trucos para resolver un climograma</h2><div class="readerControls"><button type="button" class="btn" id="tricksSmaller" aria-label="Reducir letra">A−</button><button type="button" class="btn" id="tricksLarger" aria-label="Aumentar letra">A+</button><button type="button" class="btn" id="closeTricksReader">Cerrar ✕</button></div></header><div class="readerBody"></div>';
+ document.body.append(dialog);
+ const reader=dialog.querySelector('.readerBody');let font=20,lastFocus=null;
+ const setFont=()=>{dialog.style.setProperty('--reader-font',font+'px');document.getElementById('tricksSmaller').disabled=font<=16;document.getElementById('tricksLarger').disabled=font>=36;};
+ function open(card){
+  lastFocus=document.activeElement;reader.replaceChildren();reader.classList.toggle('singleTrick',!!card);
+  document.getElementById('tricksReaderTitle').textContent=card?card.querySelector('h3').textContent:'Trucos para resolver un climograma';
+  reader.append((card||grid).cloneNode(true));font=card?24:20;setFont();reader.scrollTop=0;dialog.showModal();
+ }
+ document.getElementById('enlargeAllTricks').onclick=()=>open(null);
+ grid.querySelectorAll('.trickCard').forEach(card=>{
+  const button=document.createElement('button');button.type='button';button.className='enlargeTrick';button.textContent='↗';button.setAttribute('aria-label','Ampliar '+card.querySelector('h3').textContent);button.title=button.getAttribute('aria-label');button.onclick=()=>open(card);card.querySelector('.trickHead').append(button);
+ });
+ document.getElementById('closeTricksReader').onclick=()=>dialog.close();
+ dialog.addEventListener('close',()=>lastFocus?.focus({preventScroll:true}));
+ document.getElementById('tricksSmaller').onclick=()=>{font=Math.max(16,font-2);setFont();};
+ document.getElementById('tricksLarger').onclick=()=>{font=Math.min(36,font+2);setFont();};
+ let pending=0;
+ function fitOverview(){
+  pending=0;if(!section.classList.contains('active'))return;
+  grid.style.removeProperty('--overview-font');grid.style.removeProperty('--overview-title');
+  if(!matchMedia('(min-width:901px) and (orientation:landscape)').matches)return;
+  // Prefer six complete cards on one screen; retain scrolling at readable size on short displays.
+  for(let size=14;size>=11;size-=.5){
+   grid.style.setProperty('--overview-font',size+'px');grid.style.setProperty('--overview-title',(size+4)+'px');
+   if(grid.scrollHeight<=grid.clientHeight+1)break;
+  }
+ }
+ const schedule=()=>{if(!pending)pending=requestAnimationFrame(fitOverview);};
+ new MutationObserver(schedule).observe(section,{attributes:true,attributeFilter:['class']});
+ window.addEventListener('resize',schedule);document.addEventListener('fullscreenchange',schedule);schedule();
+})();
+</script></body>
 </html>
