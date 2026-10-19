@@ -177,7 +177,7 @@ header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;
   <div class="compare"><div class="chartCard"><div class="chartHead"><h2 id="titleA"></h2></div><div class="chartWrap" id="chartA"></div><div class="infoCard" id="infoA"></div></div><div class="chartCard"><div class="chartHead"><h2 id="titleB"></h2></div><div class="chartWrap" id="chartB"></div><div class="infoCard" id="infoB"></div></div></div>
  </section>
  <section id="quiz" class="panel">
-  <div class="toolbar"><div><strong>Identifica la estación</strong><div class="hiddenTitle">Observa el climograma e identifica la ciudad o su provincia</div></div><button id="newQuiz" class="btn primary">Nueva estación</button></div>
+  <div class="toolbar"><div><strong>Identifica la estación</strong><span id="climateRoundProgress" style="font-size:12px;color:var(--muted);margin-left:9px;white-space:nowrap" aria-live="polite"></span><div class="hiddenTitle">Observa el climograma e identifica la ciudad o su provincia</div></div><button id="newQuiz" class="btn primary">Nueva estación</button></div>
   <div class="quizLayout"><div class="chartCard"><div class="chartHead"><h2>Estación desconocida</h2><div class="stats quizStats" id="quizStats"></div></div><div class="chartWrap" id="quizChart"></div></div><aside class="quizCard"><h3>¿A qué estación pertenece?</h3><div class="guessModes" role="group" aria-label="Forma de responder"><button type="button" id="writeMode" class="btn primary" aria-pressed="true">Escribir</button><button type="button" id="choiceMode" class="btn" aria-pressed="false">Opciones</button></div><div class="options" id="options" hidden></div><form id="writtenForm"><label for="cityGuess">Ciudad o provincia</label><div class="writtenRow"><input id="cityGuess" type="text" placeholder="Escribe tu respuesta" autocomplete="off" autocapitalize="words" enterkeyhint="go" required><button class="btn primary" type="submit">Comprobar</button></div><p class="writtenHelp">Puedes escribir una ciudad del juego o cualquier capital provincial. También se acepta la provincia.</p></form><div id="distanceHint" aria-live="polite"></div><div class="feedback" id="feedback">Selecciona una opción.</div><div id="quizSummary" aria-live="polite" hidden></div><section class="tip climateHints" aria-labelledby="climateHintsTitle"><div class="hintHeader"><h4 id="climateHintsTitle">Pistas para localizarlo</h4><span id="climateHintCount"></span><button type="button" class="btn" id="climateHintButton" aria-controls="climateHintText">Ver pista</button></div><p id="climateHintText" aria-live="polite" aria-atomic="true"></p><small>Son orientaciones: combina varias pistas antes de responder.</small></section></aside></div>
  </section>
  <section id="tricks" class="panel">
@@ -243,8 +243,50 @@ function renderStudy(){const d=DATA[+station.value];studyTitle.textContent=d.n;s
 function renderCompare(){const a=DATA[+ca.value],b=DATA[+cb.value],sharedMaxP=Math.max(100,Math.ceil(Math.max(...a.p,...b.p)/20)*20);titleA.textContent=a.n;titleB.textContent=b.n;chartA.innerHTML=chart(a,"",sharedMaxP);chartB.innerHTML=chart(b,"",sharedMaxP);infoA.innerHTML=info(a,true);infoB.innerHTML=info(b,true)}
 station.onchange=renderStudy;ca.onchange=cb.onchange=renderCompare;prev.onclick=()=>{station.value=(+station.value-1+DATA.length)%DATA.length;renderStudy()};next.onclick=()=>{station.value=(+station.value+1)%DATA.length;renderStudy()};swap.onclick=()=>{const x=ca.value;ca.value=cb.value;cb.value=x;renderCompare()};
 document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));document.querySelectorAll(".panel").forEach(x=>x.classList.toggle("active",x.id===b.dataset.panel));if(b.dataset.panel==="compare")renderCompare()});
+// Shuffle stations within broad climate families, then interleave those families.
+const climateRoundState={queue:[],round:0,position:0,last:null};
+function climateFamily(d){
+ const type=d.type.toLowerCase();
+ if(type.includes('oceánico'))return 'oceánico';
+ if(type.includes('montaña'))return 'montaña';
+ if(type.includes('canario'))return 'canario';
+ if(type.includes('semiárido')||type.includes('seco'))return 'semiárido';
+ if(type.includes('litoral'))return 'mediterráneo litoral';
+ return 'mediterráneo interior';
+}
+function buildBalancedClimateRound(previous=null){
+ const groups=new Map();
+ DATA.forEach((d,i)=>{const family=climateFamily(d);if(!groups.has(family))groups.set(family,[]);groups.get(family).push(i);});
+ for(const ids of groups.values())for(let i=ids.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[ids[i],ids[j]]=[ids[j],ids[i]];}
+ const result=[];let last=previous===null?null:climateFamily(DATA[previous]);
+ while(result.length<DATA.length){
+  let choices=[...groups.keys()].filter(g=>groups.get(g).length&&g!==last);
+  if(!choices.length)choices=[...groups.keys()].filter(g=>groups.get(g).length);
+  const remaining=DATA.length-result.length-1;
+  // Keep enough gaps for the most numerous family later in the round.
+  const feasible=choices.filter(candidate=>[...groups].every(([g,ids])=>{
+   const count=ids.length-(g===candidate?1:0);
+   return count<=(g===candidate?Math.floor(remaining/2):Math.ceil(remaining/2));
+  }));
+  if(feasible.length)choices=feasible;
+  else{const largest=Math.max(...choices.map(g=>groups.get(g).length));choices=choices.filter(g=>groups.get(g).length===largest);}
+  const total=choices.reduce((sum,g)=>sum+Math.sqrt(groups.get(g).length),0);let random=Math.random()*total;
+  const chosen=choices.find(g=>(random-=Math.sqrt(groups.get(g).length))<0)||choices[choices.length-1];
+  const ids=groups.get(chosen);
+  if(!result.length&&ids.length>1&&ids[ids.length-1]===previous)[ids[0],ids[ids.length-1]]=[ids[ids.length-1],ids[0]];
+  result.push(ids.pop());last=chosen;
+ }
+ return result;
+}
+function takeBalancedClimateStation(){
+ if(!climateRoundState.queue.length){climateRoundState.queue=buildBalancedClimateRound(climateRoundState.last);climateRoundState.round++;climateRoundState.position=0;}
+ const station=climateRoundState.queue.shift();climateRoundState.last=station;climateRoundState.position++;
+ document.getElementById('climateRoundProgress').textContent=`Ronda ${climateRoundState.round} (${climateRoundState.position}/${DATA.length})`;
+ return station;
+}
+
 let answer=0,locked=false;function shuffle(a){return a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1])}function quizData(d){const m=metrics(d);return `<div class="stat"><b>${fmt(m.mean)} °C</b><span>Temperatura media anual</span></div><div class="stat"><b>${fmt(m.amp)} °C</b><span>Amplitud térmica</span></div><div class="stat"><b>${m.annP} mm</b><span>Precipitación anual</span></div>`}
-function quiz(){locked=false;answer=Math.floor(Math.random()*DATA.length);quizChart.innerHTML=chart(DATA[answer]);document.getElementById("quizStats").innerHTML=quizData(DATA[answer]);resetWritten();resetClimateHints(DATA[answer]);feedback.textContent=writtenMode?"Escribe una ciudad o provincia.":"Selecciona una opción.";const wrong=shuffle(DATA.map((_,i)=>i).filter(i=>i!==answer)).slice(0,3),opts=shuffle([answer,...wrong]);options.innerHTML=opts.map(i=>`<button class="option" data-i="${i}">${DATA[i].n}</button>`).join("");options.querySelectorAll("button").forEach(b=>b.onclick=()=>{if(locked)return;locked=true;const i=+b.dataset.i;if(i===answer)showQuizSummary();b.classList.add(i===answer?"ok":"bad");options.querySelector(`[data-i="${answer}"]`).classList.add("ok");feedback.innerHTML=i===answer?`Correcto: <strong>${DATA[answer].n}</strong>, clima ${DATA[answer].type.toLowerCase()}.`:`Era <strong>${DATA[answer].n}</strong>: ${DATA[answer].facts[0].toLowerCase()}`})}newQuiz.onclick=quiz;
+function quiz(keepCurrent=false){locked=false;if(keepCurrent!==true)answer=takeBalancedClimateStation();quizChart.innerHTML=chart(DATA[answer]);document.getElementById("quizStats").innerHTML=quizData(DATA[answer]);resetWritten();resetClimateHints(DATA[answer]);feedback.textContent=writtenMode?"Escribe una ciudad o provincia.":"Selecciona una opción.";const wrong=shuffle(DATA.map((_,i)=>i).filter(i=>i!==answer)).slice(0,3),opts=shuffle([answer,...wrong]);options.innerHTML=opts.map(i=>`<button class="option" data-i="${i}">${DATA[i].n}</button>`).join("");options.querySelectorAll("button").forEach(b=>b.onclick=()=>{if(locked)return;locked=true;const i=+b.dataset.i;if(i===answer)showQuizSummary();b.classList.add(i===answer?"ok":"bad");options.querySelector(`[data-i="${answer}"]`).classList.add("ok");feedback.innerHTML=i===answer?`Correcto: <strong>${DATA[answer].n}</strong>, clima ${DATA[answer].type.toLowerCase()}.`:`Era <strong>${DATA[answer].n}</strong>: ${DATA[answer].facts[0].toLowerCase()}`})}newQuiz.onclick=quiz;
 
 const normName=s=>s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
 const PLACES=[
@@ -293,7 +335,7 @@ function geoHint(from,to){const rad=Math.PI/180,a=from.lat*rad,b=to.lat*rad,delt
 let writtenMode=true;
 const writtenForm=document.getElementById("writtenForm"),cityGuess=document.getElementById("cityGuess"),distanceHint=document.getElementById("distanceHint");
 function resetWritten(){document.getElementById("quizSummary").hidden=true;document.getElementById("quizSummary").innerHTML="";cityGuess.value="";cityGuess.disabled=false;writtenForm.querySelector("button").disabled=false;distanceHint.innerHTML="";}
-function setGuessMode(write){writtenMode=write;writtenForm.hidden=!write;options.hidden=write;document.getElementById("choiceMode").classList.toggle("primary",!write);document.getElementById("writeMode").classList.toggle("primary",write);document.getElementById("choiceMode").setAttribute("aria-pressed",String(!write));document.getElementById("writeMode").setAttribute("aria-pressed",String(write));quiz();}
+function setGuessMode(write){writtenMode=write;writtenForm.hidden=!write;options.hidden=write;document.getElementById("choiceMode").classList.toggle("primary",!write);document.getElementById("writeMode").classList.toggle("primary",write);document.getElementById("choiceMode").setAttribute("aria-pressed",String(!write));document.getElementById("writeMode").setAttribute("aria-pressed",String(write));quiz(true);}
 document.getElementById("choiceMode").onclick=()=>setGuessMode(false);document.getElementById("writeMode").onclick=()=>setGuessMode(true);
 function spellingDistance(a,b){const d=Array.from({length:a.length+1},()=>Array(b.length+1).fill(0));for(let i=0;i<=a.length;i++)d[i][0]=i;for(let j=0;j<=b.length;j++)d[0][j]=j;for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++){d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));if(i>1&&j>1&&a[i-1]===b[j-2]&&a[i-2]===b[j-1])d[i][j]=Math.min(d[i][j],d[i-2][j-2]+1);}return d[a.length][b.length];}
 function resolveSpelling(key){if(placeByName.has(key)||provinceByName.has(key))return key;if(key.length<4)return key;let best=Infinity,matches=[];const names=new Set([...placeByName.keys(),...provinceByName.keys()]);for(const name of names){const limit=Math.max(key.length,name.length)>=8?2:1,score=spellingDistance(key,name);if(score>limit||score/Math.max(key.length,name.length)>.22)continue;if(score<best){best=score;matches=[name];}else if(score===best)matches.push(name);}const provinces=new Set(matches.map(n=>normName((placeByName.get(n)||provinceByName.get(n)).province)));return provinces.size===1?matches[0]:key;}
@@ -420,7 +462,7 @@ window.matchMedia("(max-width:600px)").addEventListener("change",()=>{
   if(mapMode&&!locked)panelFeedback.textContent='Pulsa la provincia a la que corresponde el climograma.';
   syncFeedback();
  }
- const originalQuiz=quiz;quiz=function(){originalQuiz();resetMap();updateMode();};newQuiz.onclick=()=>quiz();
+ const originalQuiz=quiz;quiz=function(...args){originalQuiz(...args);resetMap();updateMode();};newQuiz.onclick=()=>quiz();
  const originalSetMode=setGuessMode;function setMode(mode){if(dialog.open)dialog.close();mapMode=mode==='map';originalSetMode(mode!=='options');updateMode();}
  mapButton.onclick=()=>setMode('map');document.getElementById('writeMode').onclick=()=>setMode('write');document.getElementById('choiceMode').onclick=()=>setMode('options');
  document.getElementById('mapZoomIn').onclick=()=>{zoom=Math.min(4,zoom+.5);transform();};
